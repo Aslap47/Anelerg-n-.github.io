@@ -4,97 +4,173 @@
   <meta charset="UTF-8">
   <title>Kalp Animasyonu</title>
   <style>
-    body { margin: 0; background: black; overflow: hidden; }
-    canvas { display: block; }
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      color: white;
+    }
+    canvas {
+      display: block;
+    }
+    #controls {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #ff2077;
+      color: white;
+      margin: 0 10px;
+      box-shadow: 0 0 10px rgba(255, 20, 100, 0.7);
+    }
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: #ff92b2;
+      opacity: 0;
+      transition: opacity 2s ease;
+      z-index: 2;
+    }
   </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  <div id="controls">
+    <button id="startBtn">Başlat</button>
+    <button id="restartBtn" style="display: none;">Tekrar Yap</button>
+  </div>
+  <div id="message">CANIM ANNEM<br>ANNELER GÜNÜN KUTLU OLSUN</div>
+  <canvas id="canvas"></canvas>
 
-let particles = [];
-let heart = [];
-let angle = 0;
-let beatCounter = 0;
-let beating = true;
-let dispersing = false;
-let frame = 0;
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-// Kalp denklemiyle nokta üret
-for (let t = 0; t < Math.PI * 2; t += 0.05) {
-  const x = 16 * Math.pow(Math.sin(t), 3);
-  const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-  heart.push({ x: x * 10, y: -y * 10 }); // ölçekle
-}
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const message = document.getElementById('message');
 
-// Parçacıkları başlat
-for (let i = 0; i < heart.length; i++) {
-  let h = heart[i];
-  particles.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    tx: canvas.width/2 + h.x,
-    ty: canvas.height/2 + h.y,
-    vx: 0, vy: 0,
-    alpha: 1,
-    color: `hsl(${Math.random() * 360}, 80%, 60%)`
-  });
-}
+    let particles = [];
+    let heart = [];
+    let angle = 0;
+    let beatCounter = 0;
+    let beating = true;
+    let dispersing = false;
+    let frame = 0;
+    let animationRunning = false;
 
-function animate() {
-  frame++;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function setupParticles() {
+      particles = [];
+      heart = [];
+      angle = 0;
+      beatCounter = 0;
+      beating = true;
+      dispersing = false;
+      frame = 0;
+      message.style.opacity = 0;
 
-  particles.forEach(p => {
-    if (!dispersing) {
-      let dx = p.tx - p.x;
-      let dy = p.ty - p.y;
-      p.vx += dx * 0.01;
-      p.vy += dy * 0.01;
-      p.vx *= 0.85;
-      p.vy *= 0.85;
-      p.x += p.vx;
-      p.y += p.vy;
-
-      // Kalp atışı
-      if (beating) {
-        const scale = 1 + 0.05 * Math.sin(frame * 0.3);
-        p.tx = canvas.width/2 + heart[particles.indexOf(p)].x * scale;
-        p.ty = canvas.height/2 + heart[particles.indexOf(p)].y * scale;
-        if (frame % 60 === 0) beatCounter++;
-        if (beatCounter >= 2) {
-          beating = false;
-          dispersing = true;
-        }
+      for (let t = 0; t < Math.PI * 2; t += 0.05) {
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+        heart.push({ x: x * 10, y: -y * 10 });
       }
 
-    } else {
-      // Dağılma animasyonu
-      p.vx += (Math.random() - 0.5) * 0.5;
-      p.vy += (Math.random() - 0.5) * 0.5;
-      p.vx *= 0.98;
-      p.vy *= 0.98;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.alpha *= 0.96;
+      for (let i = 0; i < heart.length; i++) {
+        let h = heart[i];
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          tx: canvas.width / 2 + h.x,
+          ty: canvas.height / 2 + h.y,
+          vx: 0,
+          vy: 0,
+          alpha: 1,
+          color: `hsl(${Math.random() * 360}, 80%, 60%)`
+        });
+      }
     }
 
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(255, 20, 100, ${p.alpha})`;
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fill();
-  });
+    function animate() {
+      animationRunning = true;
+      frame++;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (dispersing && particles.every(p => p.alpha < 0.01)) return;
-  requestAnimationFrame(animate);
-}
+      particles.forEach((p, i) => {
+        if (!dispersing) {
+          let dx = p.tx - p.x;
+          let dy = p.ty - p.y;
+          p.vx += dx * 0.01;
+          p.vy += dy * 0.01;
+          p.vx *= 0.85;
+          p.vy *= 0.85;
+          p.x += p.vx;
+          p.y += p.vy;
 
-animate();
-</script>
+          if (beating) {
+            const scale = 1 + 0.05 * Math.sin(frame * 0.3);
+            p.tx = canvas.width / 2 + heart[i].x * scale;
+            p.ty = canvas.height / 2 + heart[i].y * scale;
+            if (frame % 60 === 0) beatCounter++;
+            if (beatCounter >= 2) {
+              beating = false;
+              dispersing = true;
+              message.style.opacity = 1;
+            }
+          }
+
+        } else {
+          p.vx += (Math.random() - 0.5) * 0.5;
+          p.vy += (Math.random() - 0.5) * 0.5;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha *= 0.96;
+        }
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 20, 100, ${p.alpha})`;
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      if (dispersing && particles.every(p => p.alpha < 0.01)) {
+        restartBtn.style.display = "inline-block";
+        animationRunning = false;
+        return;
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = "none";
+      restartBtn.style.display = "none";
+      setupParticles();
+      animate();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      restartBtn.style.display = "none";
+      setupParticles();
+      animate();
+    });
+  </script>
 </body>
 </html>
